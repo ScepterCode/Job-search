@@ -4,67 +4,182 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Job Lead Finder</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background-color: #f0f0f0;
-    }
-    .container {
-      background: white;
-      padding: 20px;
+    /* Custom styles for the message box */
+    .message-box {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 20px;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      width: 300px;
-      text-align: center;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+    .message-box.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
-    button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
+    .message-box.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
     }
-    button:hover {
-      background-color: #0056b3;
+    .message-box.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    /* Simple loading spinner */
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: #ffffff;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <h2>Find Job Leads</h2>
-    <form id="leadForm">
-      <input type="text" id="name" placeholder="Your Name" required>
-      <input type="text" id="jobTitle" placeholder="Job Title (e.g., Fitness Trainer)" required>
-      <button type="submit">Find Leads</button>
+<body class="font-inter bg-gray-100 flex justify-center items-center min-h-screen p-4">
+
+  <!-- Message Box Container -->
+  <div id="messageBox" class="message-box hidden"></div>
+
+  <div class="container bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Find Job Leads</h1>
+
+    <form id="leadForm" class="space-y-4">
+      <div>
+        <label for="name" class="sr-only">Name</label>
+        <input
+          type="text"
+          id="name"
+          placeholder="Your Name"
+          required
+          class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+        >
+      </div>
+      <div>
+        <label for="jobTitle" class="sr-only">Job Title</label>
+        <input
+          type="text"
+          id="jobTitle"
+          placeholder="Job Title (e.g., Software Engineer)"
+          required
+          class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+        >
+      </div>
+      <button
+        type="submit"
+        id="submitButton"
+        class="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 flex items-center justify-center gap-2"
+      >
+        <span id="buttonText">Find Leads</span>
+        <div id="loadingSpinner" class="spinner hidden"></div>
+      </button>
     </form>
   </div>
+
   <script>
-    document.getElementById('leadForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('name').value;
-      const jobTitle = document.getElementById('jobTitle').value;
-      const webhookUrl = 'https://hook.us2.make.com/0lf1n1oetwxor9pco3pki39p6f4zm68a'; // Replace with Make.com webhook URL
-      try {
-        await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, jobTitle })
-        });
-        alert('Leads are being processed!');
-      } catch (error) {
-        alert('Error sending data. Try again.');
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('leadForm');
+      const nameInput = document.getElementById('name');
+      const jobTitleInput = document.getElementById('jobTitle');
+      const submitButton = document.getElementById('submitButton');
+      const buttonText = document.getElementById('buttonText');
+      const loadingSpinner = document.getElementById('loadingSpinner');
+      const messageBox = document.getElementById('messageBox');
+
+      const webhookUrl = 'https://hook.us2.make.com/0lf1n1oetwxor9pco3pki39p6f4zm68a'; // Replace with your Make.com webhook URL
+
+      /**
+       * Displays a message to the user in a custom box.
+       * @param {string} message - The message to display.
+       * @param {'success' | 'error'} type - The type of message (success or error).
+       */
+      function showMessage(message, type) {
+        messageBox.textContent = message;
+        messageBox.className = `message-box show ${type}`; // Add hidden class if not already there, then show
+        // Use a timeout to fade out the message after a few seconds
+        setTimeout(() => {
+          messageBox.classList.remove('show');
+          // Hide after transition ends
+          setTimeout(() => {
+            messageBox.classList.add('hidden');
+          }, 300);
+        }, 3000);
       }
+
+      /**
+       * Toggles the loading state of the form.
+       * @param {boolean} isLoading - True to show loading, false to hide.
+       */
+      function toggleLoadingState(isLoading) {
+        submitButton.disabled = isLoading;
+        nameInput.disabled = isLoading;
+        jobTitleInput.disabled = isLoading;
+        if (isLoading) {
+          buttonText.textContent = 'Processing...';
+          loadingSpinner.classList.remove('hidden');
+          submitButton.classList.add('opacity-80', 'cursor-not-allowed');
+        } else {
+          buttonText.textContent = 'Find Leads';
+          loadingSpinner.classList.add('hidden');
+          submitButton.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Prevent default form submission
+
+        toggleLoadingState(true); // Show loading indicator and disable form
+
+        const name = nameInput.value.trim();
+        const jobTitle = jobTitleInput.value.trim();
+
+        if (!name || !jobTitle) {
+          showMessage('Please fill in all fields.', 'error');
+          toggleLoadingState(false);
+          return;
+        }
+
+        try {
+          const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, jobTitle })
+          });
+
+          if (response.ok) { // Check if the response status is 200-299
+            showMessage('Leads are being processed successfully!', 'success');
+            form.reset(); // Clear the form fields on success
+          } else {
+            const errorText = await response.text(); // Get raw error message from webhook if any
+            console.error('Webhook error response:', errorText);
+            showMessage(`Error sending data: ${response.status} ${response.statusText}. Please try again.`, 'error');
+          }
+        } catch (error) {
+          console.error('Network or fetch error:', error);
+          showMessage('Network error. Please check your internet connection and try again.', 'error');
+        } finally {
+          toggleLoadingState(false); // Hide loading indicator and re-enable form
+        }
+      });
     });
   </script>
 </body>
