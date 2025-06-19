@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Lead Finder</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
+      text-align: center;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Find Job Leads</h2>
+    <form id="leadForm">
+      <input type="text" id="name" placeholder="Your Name" required>
+      <input type="text" id="jobTitle" placeholder="Job Title (e.g., Fitness Trainer)" required>
+      <button type="submit">Find Leads</button>
+    </form>
+  </div>
+  <script>
+    document.getElementById('leadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const jobTitle = document.getElementById('jobTitle').value;
+      const webhookUrl = 'YOUR_MAKE_WEBHOOK_URL'; // Replace with Make.com webhook URL
+      try {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, jobTitle })
+        });
+        alert('Leads are being processed!');
+      } catch (error) {
+        alert('Error sending data. Try again.');
+      }
+    });
+  </script>
+</body>
+</html>
