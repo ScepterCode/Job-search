@@ -158,24 +158,35 @@
           return;
         }
 
+        const payload = { name, jobTitle };
+        console.log('Attempting to send payload:', payload); // Log the payload being sent
+
         try {
           const response = await fetch(webhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, jobTitle })
+            body: JSON.stringify(payload)
           });
+
+          console.log('Fetch response status:', response.status); // Log the HTTP status code
+          console.log('Fetch response headers:', response.headers); // Log the response headers
 
           if (response.ok) { // Check if the response status is 200-299
             showMessage('Leads are being processed successfully!', 'success');
             form.reset(); // Clear the form fields on success
           } else {
             const errorText = await response.text(); // Get raw error message from webhook if any
-            console.error('Webhook error response:', errorText);
+            console.error('Webhook error response (status not OK):', response.status, response.statusText, errorText);
             showMessage(`Error sending data: ${response.status} ${response.statusText}. Please try again.`, 'error');
           }
         } catch (error) {
-          console.error('Network or fetch error:', error);
-          showMessage('Network error. Please check your internet connection and try again.', 'error');
+          // This catch block handles network errors (e.g., no internet, CORS issues)
+          console.error('Network or fetch error caught:', error);
+          if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+             showMessage('Network connection failed or CORS error. Check console for details.', 'error');
+          } else {
+             showMessage('An unexpected error occurred. Check console for details.', 'error');
+          }
         } finally {
           toggleLoadingState(false); // Hide loading indicator and re-enable form
         }
